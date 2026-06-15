@@ -9,43 +9,59 @@ function basename(path: string): string {
   return parts[parts.length - 1] || path;
 }
 
-/** Load a PDF from raw bytes already in the webview. */
-export async function openData(
+/** Parse already-fetched bytes into the (already-created, loading) tab `id`. */
+async function loadIntoTab(
+  id: string,
   data: ArrayBuffer,
   fileName: string,
   filePath: string | null
 ): Promise<void> {
   const store = useStore.getState();
-  store.beginLoad();
   try {
     const loaded = await loadDocument(data, requestPassword);
-    store.setLoaded(loaded, fileName, filePath);
+    store.fillTab(id, loaded);
     if (filePath) {
       store.addRecent({ path: filePath, name: fileName, ts: Date.now() });
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (/password/i.test(msg) || /cancel/i.test(msg)) {
-      // user cancelled the password prompt — return to idle rather than error
-      store.reset();
+      // user cancelled the password prompt — drop the placeholder tab
+      store.removeTab(id);
       return;
     }
-    store.setError(`Could not open “${fileName}”. ${msg}`);
+    store.failTab(id, `Could not open “${fileName}”. ${msg}`);
   }
+}
+
+/** Load a PDF from raw bytes already in the webview (drag-drop fallback). */
+export async function openData(
+  data: ArrayBuffer,
+  fileName: string,
+  filePath: string | null
+): Promise<void> {
+  const id = useStore.getState().openTab(fileName, filePath);
+  await loadIntoTab(id, data, fileName, filePath);
 }
 
 /** Read a PDF from an absolute path via the Rust backend, then load it. */
 export async function openPath(path: string): Promise<void> {
+  const store = useStore.getState();
+  // Already open? Just focus that tab instead of loading a duplicate.
+  if (store.focusExisting(path)) return;
+
   const name = basename(path);
+  // Create the tab up front so the user sees a loading tab while bytes are read.
+  const id = store.openTab(name, path);
   try {
     const buf = await invoke<ArrayBuffer>("read_pdf", { path });
     // invoke may hand back ArrayBuffer or a number[] depending on transport
     const data =
       buf instanceof ArrayBuffer ? buf : new Uint8Array(buf as number[]).buffer;
-    await openData(data, name, path);
+    await loadIntoTab(id, data, name, path);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    useStore.getState().setError(`Could not read “${name}”. ${msg}`);
+    useStore.getState().failTab(id, `Could not read “${name}”. ${msg}`);
   }
 }
 

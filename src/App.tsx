@@ -1,24 +1,36 @@
 import { useEffect } from "react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { invoke } from "@tauri-apps/api/core";
-import { useStore } from "./state/store";
+import { useStore, activeTab } from "./state/store";
+import { useUpdater } from "./lib/updater";
 import { openPath, openFile } from "./lib/source";
 import { Toolbar } from "./components/Toolbar";
+import { Tabs } from "./components/Tabs";
 import { SearchBar } from "./components/SearchBar";
 import { Sidebar } from "./components/Sidebar";
 import { PdfViewer } from "./pdf/PdfViewer";
 import { EmptyState } from "./components/EmptyState";
+import { StageStatus } from "./components/StageStatus";
 import { PasswordModal } from "./components/PasswordModal";
+import { UpdateModal } from "./components/UpdateModal";
 import { StatusBar } from "./components/StatusBar";
 
 export default function App() {
-  const ready = useStore((s) => s.status === "ready");
+  const ready = useStore((s) => activeTab(s)?.status === "ready");
+  const hasTabs = useStore((s) => s.tabs.length > 0);
+  const activeId = useStore((s) => s.activeId);
+  const activeStatus = useStore((s) => activeTab(s)?.status ?? null);
   const openSearch = useStore((s) => s.openSearch);
   const closeSearch = useStore((s) => s.closeSearch);
   const zoomIn = useStore((s) => s.zoomIn);
   const zoomOut = useStore((s) => s.zoomOut);
   const setZoomMode = useStore((s) => s.setZoomMode);
   const requestGoto = useStore((s) => s.requestGoto);
+
+  // Check for an app update once on launch (no-op outside Tauri / when offline).
+  useEffect(() => {
+    useUpdater.getState().check();
+  }, []);
 
   // Open a file passed at launch (default-handler / single-instance) + drag-drop.
   useEffect(() => {
@@ -69,7 +81,8 @@ export default function App() {
         const tgt = e.target as HTMLElement;
         if (tgt.tagName !== "INPUT") {
           e.preventDefault();
-          requestGoto(e.key === "Home" ? 1 : useStore.getState().numPages);
+          const n = activeTab(useStore.getState())?.numPages ?? 1;
+          requestGoto(e.key === "Home" ? 1 : n);
         }
       }
     };
@@ -89,13 +102,24 @@ export default function App() {
   return (
     <div className="app" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
       <Toolbar />
+      <Tabs />
       <SearchBar />
       <div className="workspace">
         <Sidebar />
-        <main className="stage">{ready ? <PdfViewer /> : <EmptyState />}</main>
+        <main className="stage">
+          {!hasTabs ? (
+            <EmptyState />
+          ) : activeStatus === "ready" ? (
+            // keyed by tab id: remounts (and restores scroll position) per tab
+            <PdfViewer key={activeId} />
+          ) : (
+            <StageStatus />
+          )}
+        </main>
       </div>
       <StatusBar />
       <PasswordModal />
+      <UpdateModal />
     </div>
   );
 }

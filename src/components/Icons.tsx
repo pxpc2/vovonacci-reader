@@ -94,3 +94,23 @@ export const IconPrint = ({ size }: IP) => (
     <rect x="6" y="14" width="12" height="7" rx="1" />
   </svg>
 );
+export const IconPlus = ({ size }: IP) => (
+  <svg {...base(size)}>
+    <line x1="12" y1="5" x2="12" y2="19" />
+    <line x1="5" y1="12" x2="19" y2="12" />
+  </svg>
+);
+// Half-filled disc — toggles dark-mode page inversion.
+export const IconInvert = ({ size }: IP) => (
+  <svg {...base(size)}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor" stroke="none" />
+  </svg>
+);
+export const IconDownload = ({ size }: IP) => (
+  <svg {...base(size)}>
+    <path d="M12 3v12" />
+    <polyline points="7 10 12 15 17 10" />
+    <path d="M5 19h14" />
+  </svg>
+);

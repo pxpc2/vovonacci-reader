@@ -1,16 +1,19 @@
 import { useEffect, useRef } from "react";
-import { useStore } from "../state/store";
+import { useStore, activeTab } from "../state/store";
+import type { SearchMatch } from "../state/store";
 import { runSearch } from "../lib/search";
 import { IconChevronUp, IconChevronDown, IconClose } from "./Icons";
 
+const EMPTY: SearchMatch[] = [];
+
 export function SearchBar() {
-  const open = useStore((s) => s.search.open);
-  const query = useStore((s) => s.search.query);
-  const matches = useStore((s) => s.search.matches);
-  const active = useStore((s) => s.search.active);
-  const building = useStore((s) => s.search.building);
-  const doc = useStore((s) => s.doc);
-  const numPages = useStore((s) => s.numPages);
+  const open = useStore((s) => activeTab(s)?.search.open ?? false);
+  const query = useStore((s) => activeTab(s)?.search.query ?? "");
+  const matches = useStore((s) => activeTab(s)?.search.matches ?? EMPTY);
+  const active = useStore((s) => activeTab(s)?.search.active ?? -1);
+  const building = useStore((s) => activeTab(s)?.search.building ?? false);
+  const doc = useStore((s) => activeTab(s)?.doc ?? null);
+  const numPages = useStore((s) => activeTab(s)?.numPages ?? 0);
 
   const setSearchQuery = useStore((s) => s.setSearchQuery);
   const setSearchResults = useStore((s) => s.setSearchResults);

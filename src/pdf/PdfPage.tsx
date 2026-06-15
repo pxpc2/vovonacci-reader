@@ -22,6 +22,8 @@ interface Props {
   rotation: number;
   /** when false the page is virtualized away — slot keeps its size but no canvas */
   render: boolean;
+  /** dark-mode: invert the rendered canvas (hue-preserving) */
+  invert: boolean;
   matches: SearchMatch[];
   activeMatch: SearchMatch | null;
 }
@@ -33,6 +35,7 @@ export function PdfPage({
   scale,
   rotation,
   render: shouldRender,
+  invert,
   matches,
   activeMatch,
 }: Props) {
@@ -150,7 +153,7 @@ export function PdfPage({
 
   return (
     <div
-      className="pdf-page"
+      className={"pdf-page" + (invert ? " invert" : "")}
       data-page={pageNumber}
       style={{ width: dispW, height: dispH }}
     >

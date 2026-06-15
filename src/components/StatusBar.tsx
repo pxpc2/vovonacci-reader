@@ -1,14 +1,17 @@
-import { useStore } from "../state/store";
+import { useStore, activeTab } from "../state/store";
+import type { SearchMatch } from "../state/store";
 import { PDFJS_VERSION } from "../pdf/pdfSetup";
 
+const EMPTY: SearchMatch[] = [];
+
 export function StatusBar() {
-  const ready = useStore((s) => s.status === "ready");
-  const currentPage = useStore((s) => s.currentPage);
-  const numPages = useStore((s) => s.numPages);
-  const scale = useStore((s) => s.scale);
-  const author = useStore((s) => s.author);
-  const matches = useStore((s) => s.search.matches);
-  const searchOpen = useStore((s) => s.search.open);
+  const ready = useStore((s) => activeTab(s)?.status === "ready");
+  const currentPage = useStore((s) => activeTab(s)?.currentPage ?? 1);
+  const numPages = useStore((s) => activeTab(s)?.numPages ?? 0);
+  const scale = useStore((s) => activeTab(s)?.scale ?? 1);
+  const author = useStore((s) => activeTab(s)?.author ?? null);
+  const matches = useStore((s) => activeTab(s)?.search.matches ?? EMPTY);
+  const searchOpen = useStore((s) => activeTab(s)?.search.open ?? false);
 
   return (
     <div className="statusbar">

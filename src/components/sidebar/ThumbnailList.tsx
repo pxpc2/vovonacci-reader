@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { PDFDocumentProxy } from "pdfjs-dist/types/src/display/api";
 import { getPageProxy, type PageSize } from "../../pdf/document";
-import { useStore } from "../../state/store";
+import { useStore, activeTab } from "../../state/store";
 
 const THUMB_W = 132;
 
@@ -92,7 +92,7 @@ export function ThumbnailList({
   numPages: number;
   pageSizes: PageSize[];
 }) {
-  const currentPage = useStore((s) => s.currentPage);
+  const currentPage = useStore((s) => activeTab(s)?.currentPage ?? 1);
   return (
     <div className="thumb-list">
       {Array.from({ length: numPages }, (_, i) => {

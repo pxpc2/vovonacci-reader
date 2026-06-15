@@ -46,6 +46,10 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        // auto-updater + relaunch (the frontend checks on launch and, on accept,
+        // downloads/installs then calls process.relaunch()).
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             let args: Vec<String> = std::env::args().collect();
             app.manage(LaunchFile(Mutex::new(first_pdf_arg(&args))));

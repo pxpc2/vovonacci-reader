@@ -1,14 +1,17 @@
-import { useStore } from "../state/store";
+import { useStore, activeTab } from "../state/store";
+import type { PageSize } from "../pdf/document";
 import { OutlineTree } from "./sidebar/OutlineTree";
 import { ThumbnailList } from "./sidebar/ThumbnailList";
 
+const EMPTY_SIZES: PageSize[] = [];
+
 export function Sidebar() {
   const open = useStore((s) => s.sidebarOpen);
-  const doc = useStore((s) => s.doc);
-  const outline = useStore((s) => s.outline);
-  const numPages = useStore((s) => s.numPages);
-  const pageSizes = useStore((s) => s.pageSizes);
-  const tab = useStore((s) => s.sidebarTab);
+  const doc = useStore((s) => activeTab(s)?.doc ?? null);
+  const outline = useStore((s) => activeTab(s)?.outline ?? null);
+  const numPages = useStore((s) => activeTab(s)?.numPages ?? 0);
+  const pageSizes = useStore((s) => activeTab(s)?.pageSizes ?? EMPTY_SIZES);
+  const tab = useStore((s) => activeTab(s)?.sidebarTab ?? "outline");
   const setTab = useStore((s) => s.setSidebarTab);
 
   if (!open || !doc) return null;

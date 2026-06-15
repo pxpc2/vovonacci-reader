@@ -13,18 +13,7 @@ function timeAgo(ts: number): string {
 }
 
 export function EmptyState() {
-  const status = useStore((s) => s.status);
-  const error = useStore((s) => s.error);
   const recents = useStore((s) => s.recents);
-
-  if (status === "loading") {
-    return (
-      <div className="empty">
-        <div className="empty-mark pulse">v</div>
-        <div className="label">PARSING DOCUMENT…</div>
-      </div>
-    );
-  }
 
   return (
     <div className="empty">
@@ -40,8 +29,6 @@ export function EmptyState() {
         <span>OPEN PDF</span>
       </button>
       <div className="empty-hint label">or drop a file anywhere</div>
-
-      {error && <div className="empty-error">{error}</div>}
 
       {recents.length > 0 && (
         <div className="recents">

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useStore } from "../state/store";
+import { useStore, activeTab } from "../state/store";
 import { openWithDialog } from "../lib/source";
 import { Brand } from "./Brand";
 import {
@@ -12,18 +12,18 @@ import {
   IconFitWidth,
   IconFitPage,
   IconRotate,
+  IconInvert,
   IconSearch,
   IconPrint,
 } from "./Icons";
 
 export function Toolbar() {
-  const ready = useStore((s) => s.status === "ready");
-  const currentPage = useStore((s) => s.currentPage);
-  const numPages = useStore((s) => s.numPages);
-  const scale = useStore((s) => s.scale);
-  const zoomMode = useStore((s) => s.zoomMode);
-  const fileName = useStore((s) => s.fileName);
-  const title = useStore((s) => s.title);
+  const ready = useStore((s) => activeTab(s)?.status === "ready");
+  const currentPage = useStore((s) => activeTab(s)?.currentPage ?? 1);
+  const numPages = useStore((s) => activeTab(s)?.numPages ?? 0);
+  const scale = useStore((s) => activeTab(s)?.scale ?? 1);
+  const zoomMode = useStore((s) => activeTab(s)?.zoomMode ?? "fit-width");
+  const invert = useStore((s) => activeTab(s)?.invert ?? false);
 
   const toggleSidebar = useStore((s) => s.toggleSidebar);
   const requestGoto = useStore((s) => s.requestGoto);
@@ -31,6 +31,7 @@ export function Toolbar() {
   const zoomOut = useStore((s) => s.zoomOut);
   const setZoomMode = useStore((s) => s.setZoomMode);
   const rotateCW = useStore((s) => s.rotateCW);
+  const toggleInvert = useStore((s) => s.toggleInvert);
   const openSearch = useStore((s) => s.openSearch);
 
   const [pageInput, setPageInput] = useState(String(currentPage));
@@ -125,6 +126,13 @@ export function Toolbar() {
             <button className="tb-btn" onClick={rotateCW} title="Rotate clockwise">
               <IconRotate />
             </button>
+            <button
+              className={"tb-btn" + (invert ? " active" : "")}
+              onClick={toggleInvert}
+              title="Invert (dark mode)"
+            >
+              <IconInvert />
+            </button>
           </div>
 
           <div className="tb-divider" />
@@ -141,12 +149,6 @@ export function Toolbar() {
       )}
 
       <div className="tb-spacer" />
-
-      {ready && (
-        <div className="tb-doc" title={fileName ?? ""}>
-          {title || fileName}
-        </div>
-      )}
     </div>
   );
 }

@@ -29,9 +29,24 @@ export interface LoadedDoc {
   author: string | null;
 }
 
-// ---- Per-document caches (cleared when a new doc is opened) ----------------
-let pageProxyCache = new Map<number, Promise<PDFPageProxy>>();
-let textCache = new Map<number, Promise<TextSnapshot>>();
+// ---- Per-document caches ---------------------------------------------------
+// Keyed by the PDFDocumentProxy itself so every open tab keeps its own page /
+// text caches. Using a WeakMap means a document's caches are reclaimed by GC
+// once its tab is closed and the proxy is dropped (we also call doc.destroy()).
+interface DocCaches {
+  pages: Map<number, Promise<PDFPageProxy>>;
+  text: Map<number, Promise<TextSnapshot>>;
+}
+const docCaches = new WeakMap<PDFDocumentProxy, DocCaches>();
+
+function cachesFor(doc: PDFDocumentProxy): DocCaches {
+  let c = docCaches.get(doc);
+  if (!c) {
+    c = { pages: new Map(), text: new Map() };
+    docCaches.set(doc, c);
+  }
+  return c;
+}
 
 export interface TextSnapshot {
   /** raw pdf.js text items (str + geometry), index-aligned */
@@ -46,10 +61,11 @@ export function getPageProxy(
   doc: PDFDocumentProxy,
   pageNumber: number
 ): Promise<PDFPageProxy> {
-  let p = pageProxyCache.get(pageNumber);
+  const cache = cachesFor(doc).pages;
+  let p = cache.get(pageNumber);
   if (!p) {
     p = doc.getPage(pageNumber);
-    pageProxyCache.set(pageNumber, p);
+    cache.set(pageNumber, p);
   }
   return p;
 }
@@ -58,7 +74,8 @@ export function getTextSnapshot(
   doc: PDFDocumentProxy,
   pageNumber: number
 ): Promise<TextSnapshot> {
-  let p = textCache.get(pageNumber);
+  const cache = cachesFor(doc).text;
+  let p = cache.get(pageNumber);
   if (!p) {
     p = (async () => {
       const page = await getPageProxy(doc, pageNumber);
@@ -90,14 +107,9 @@ export function getTextSnapshot(
       }
       return { items, lower: text.toLowerCase(), ranges };
     })();
-    textCache.set(pageNumber, p);
+    cache.set(pageNumber, p);
   }
   return p;
-}
-
-function resetCaches() {
-  pageProxyCache = new Map();
-  textCache = new Map();
 }
 
 function normalizeOutline(raw: any[] | null): OutlineNode[] | null {
@@ -117,7 +129,6 @@ export async function loadDocument(
   data: ArrayBuffer,
   onPassword?: (retry: boolean) => Promise<string>
 ): Promise<LoadedDoc> {
-  resetCaches();
   const task = pdfjs.getDocument({
     data: new Uint8Array(data),
     // bundled cmaps/fonts for proper glyph rendering of CJK/embedded fonts

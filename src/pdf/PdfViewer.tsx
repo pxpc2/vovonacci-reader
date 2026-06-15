@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { useStore } from "../state/store";
+import { useStore, activeTab } from "../state/store";
+import type { PageSize } from "./document";
 import type { SearchMatch } from "../state/store";
 import { PdfPage } from "./PdfPage";
 
@@ -7,19 +8,21 @@ const PAD = 24;
 const GAP = 16;
 const SCROLLBAR = 14;
 const EMPTY: SearchMatch[] = [];
+const EMPTY_SIZES: PageSize[] = [];
 
 export function PdfViewer() {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const doc = useStore((s) => s.doc);
-  const numPages = useStore((s) => s.numPages);
-  const pageSizes = useStore((s) => s.pageSizes);
-  const scale = useStore((s) => s.scale);
-  const zoomMode = useStore((s) => s.zoomMode);
-  const rotation = useStore((s) => s.rotation);
-  const goto = useStore((s) => s.goto);
+  const doc = useStore((s) => activeTab(s)?.doc ?? null);
+  const numPages = useStore((s) => activeTab(s)?.numPages ?? 0);
+  const pageSizes = useStore((s) => activeTab(s)?.pageSizes ?? EMPTY_SIZES);
+  const scale = useStore((s) => activeTab(s)?.scale ?? 1);
+  const zoomMode = useStore((s) => activeTab(s)?.zoomMode ?? "fit-width");
+  const rotation = useStore((s) => activeTab(s)?.rotation ?? 0);
+  const invert = useStore((s) => activeTab(s)?.invert ?? false);
+  const goto = useStore((s) => activeTab(s)?.goto ?? null);
   const setCurrentPage = useStore((s) => s.setCurrentPage);
-  const matches = useStore((s) => s.search.matches);
-  const activeIdx = useStore((s) => s.search.active);
+  const matches = useStore((s) => activeTab(s)?.search.matches ?? EMPTY);
+  const activeIdx = useStore((s) => activeTab(s)?.search.active ?? -1);
 
   const [range, setRange] = useState({ start: 0, end: 4 });
 
@@ -40,6 +43,10 @@ export function PdfViewer() {
     }
     return { tops, heights, total: y - GAP + PAD, maxW };
   }, [pageSizes, scale, rotation, numPages]);
+
+  // Latest layout, readable from rAF callbacks without re-binding effects.
+  const layoutRef = useRef(layout);
+  layoutRef.current = layout;
 
   const matchesByPage = useMemo(() => {
     const m = new Map<number, SearchMatch[]>();
@@ -99,11 +106,25 @@ export function PdfViewer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layout]);
 
-  // reset to the top of the document whenever a new file is opened
+  // On mount (this viewer is keyed by tab id, so it remounts per tab), restore
+  // the tab's last reading position. We wait two frames so the fit-to-width
+  // layout effect has settled the scale before computing the offset.
   useEffect(() => {
-    const el = scrollRef.current;
-    if (el) el.scrollTop = 0;
-  }, [doc]);
+    const page = activeTab(useStore.getState())?.currentPage ?? 1;
+    if (page <= 1) return; // fresh doc / first page — already at top
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        const el = scrollRef.current;
+        if (el) el.scrollTop = Math.max(0, layoutRef.current.tops[page - 1] - PAD);
+      });
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // --- fit-to-width / fit-to-page ---
   const recomputeFit = () => {
@@ -125,7 +146,7 @@ export function PdfViewer() {
     let s = availW / refW;
     if (zoomMode === "fit-page") s = Math.min(s, availH / refH);
     s = Math.max(0.2, Math.min(6, s));
-    if (Math.abs(s - scale) > 0.001) useStore.setState({ scale: s });
+    if (Math.abs(s - scale) > 0.001) useStore.getState().applyFitScale(s);
   };
 
   useLayoutEffect(() => {
@@ -151,7 +172,7 @@ export function PdfViewer() {
     if (prevScale.current !== scale) {
       const el = scrollRef.current;
       if (el) {
-        const cur = useStore.getState().currentPage;
+        const cur = activeTab(useStore.getState())?.currentPage ?? 1;
         el.scrollTop = Math.max(0, layout.tops[cur - 1] - PAD);
       }
       prevScale.current = scale;
@@ -193,6 +214,7 @@ export function PdfViewer() {
                 scale={scale}
                 rotation={rotation}
                 render={i >= range.start && i <= range.end}
+                invert={invert}
                 matches={matchesByPage.get(i + 1) ?? EMPTY}
                 activeMatch={activeMatch}
               />
