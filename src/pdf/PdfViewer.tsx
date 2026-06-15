@@ -25,6 +25,7 @@ export function PdfViewer() {
   const activeIdx = useStore((s) => activeTab(s)?.search.active ?? -1);
 
   const [range, setRange] = useState({ start: 0, end: 4 });
+  const [viewportW, setViewportW] = useState(0);
 
   const layout = useMemo(() => {
     const tops: number[] = [];
@@ -158,10 +159,12 @@ export function PdfViewer() {
     const el = scrollRef.current;
     if (!el) return;
     const ro = new ResizeObserver(() => {
+      setViewportW(el.clientWidth);
       recomputeFit();
       updateRange();
     });
     ro.observe(el);
+    setViewportW(el.clientWidth);
     return () => ro.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zoomMode, rotation, pageSizes, layout]);
@@ -192,19 +195,28 @@ export function PdfViewer() {
 
   if (!doc) return null;
 
+  // Pixel-snapped horizontal centering: an integer-width scroll area, with each
+  // page placed at a rounded `left`. This avoids the half-pixel offset that
+  // `translateX(-50%)` produces on odd page widths (which resamples the canvas
+  // and looks blurry at dpr=1 until a zoom change happens to land on an even px).
+  const swapWH = rotation % 180 !== 0;
+  const scrollW = Math.max(viewportW, layout.maxW + PAD * 2);
+
   return (
     <div className="pdf-viewport" ref={scrollRef} onScroll={onScroll}>
       <div
         className="pdf-scroll"
-        style={{ height: layout.total, width: layout.maxW + PAD * 2 }}
+        style={{ height: layout.total, width: scrollW }}
       >
         {Array.from({ length: numPages }, (_, i) => {
           const bs = pageSizes[i] ?? pageSizes[0];
           if (!bs) return null;
+          const pageW = Math.floor((swapWH ? bs.height : bs.width) * scale);
+          const left = Math.max(0, Math.round((scrollW - pageW) / 2));
           return (
             <div
               className="pdf-slot"
-              style={{ top: layout.tops[i] }}
+              style={{ top: layout.tops[i], left }}
               key={i}
             >
               <PdfPage

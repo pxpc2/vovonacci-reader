@@ -64,18 +64,26 @@ never be committed — losing it means you can no longer ship updates.
 
 To cut a release:
 
-```bash
+```powershell
 # 1. bump version in package.json, src-tauri/Cargo.toml and tauri.conf.json
 # 2. build + sign the updater artifacts
 $env:TAURI_SIGNING_PRIVATE_KEY      = (Get-Content $HOME\.tauri\vovonacci.key -Raw).Trim()
 $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = "<your key password>"
 pnpm tauri build
-# 3. publish the NSIS installer, its .sig, and latest.json to a GitHub Release
-#    tagged with the new version (see src-tauri/target/release/bundle/).
+# 3. generate latest.json (UTF-8, no BOM) + a clean-named installer copy
+$env:UPDATE_NOTES = "what changed in this version"   # optional
+pnpm release:manifest
+# 4. publish to a GitHub Release tagged v<version>, marked latest
+gh release create v<version> `
+  src-tauri/target/release/upload/vovonacci-reader_<version>_x64-setup.exe `
+  src-tauri/target/release/upload/latest.json --latest --title "Vovonacci Reader <version>"
 ```
 
 `createUpdaterArtifacts` (in `tauri.conf.json`) makes the build emit the `.sig`
-signature and the `latest.json` the client reads.
+signature; `scripts/make-latest.mjs` assembles the `latest.json` the client
+reads. **Do not** write `latest.json` with PowerShell's `Set-Content -Encoding
+utf8` — it prepends a UTF-8 BOM that makes the updater's JSON parser reject the
+manifest (the check then fails silently). The script avoids this.
 
 ## Architecture
 

@@ -53,6 +53,23 @@ pub fn run() {
         .setup(|app| {
             let args: Vec<String> = std::env::args().collect();
             app.manage(LaunchFile(Mutex::new(first_pdf_arg(&args))));
+
+            // Default to a tall, portrait-leaning window — but sized to the actual
+            // monitor (accounting for DPI scaling) so the title bar never lands
+            // off-screen. ~92% of the screen height, width kept at the 1280 design
+            // width when it fits.
+            if let Some(win) = app.get_webview_window("main") {
+                if let Ok(Some(monitor)) = win.current_monitor() {
+                    let scale = monitor.scale_factor();
+                    let phys = monitor.size();
+                    let avail_w = phys.width as f64 / scale;
+                    let avail_h = phys.height as f64 / scale;
+                    let h = (avail_h * 0.92).clamp(600.0, 1300.0);
+                    let w = 1280.0_f64.min(avail_w * 0.95);
+                    let _ = win.set_size(tauri::LogicalSize::new(w, h));
+                    let _ = win.center();
+                }
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![read_pdf, take_launch_file])

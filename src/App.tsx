@@ -27,9 +27,10 @@ export default function App() {
   const setZoomMode = useStore((s) => s.setZoomMode);
   const requestGoto = useStore((s) => s.requestGoto);
 
-  // Check for an app update once on launch (no-op outside Tauri / when offline).
+  // Check for an app update once on launch. Silent: quiet when offline or up to
+  // date, but a genuine failure (bad manifest, etc.) still surfaces an error.
   useEffect(() => {
-    useUpdater.getState().check();
+    useUpdater.getState().check({ silent: true });
   }, []);
 
   // Open a file passed at launch (default-handler / single-instance) + drag-drop.

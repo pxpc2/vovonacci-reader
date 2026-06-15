@@ -336,13 +336,10 @@
 }
 .pdf-scroll {
   position: relative;
-  margin: 0 auto;
-  min-width: 100%;
 }
+/* `left` is set per-page in JS as a rounded integer so canvases stay pixel-snapped. */
 .pdf-slot {
   position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
 }
 .pdf-page {
   position: relative;
@@ -625,6 +622,18 @@
 }
 .st-muted {
   color: var(--text-faint);
+}
+.st-version {
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  font-size: inherit;
+}
+.st-version:hover {
+  color: var(--accent);
 }
 .st-spacer {
   flex: 1 1 auto;

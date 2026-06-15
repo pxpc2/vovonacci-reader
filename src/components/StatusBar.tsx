@@ -1,5 +1,6 @@
 import { useStore, activeTab } from "../state/store";
 import type { SearchMatch } from "../state/store";
+import { useUpdater } from "../lib/updater";
 import { PDFJS_VERSION } from "../pdf/pdfSetup";
 
 const EMPTY: SearchMatch[] = [];
@@ -12,6 +13,8 @@ export function StatusBar() {
   const author = useStore((s) => activeTab(s)?.author ?? null);
   const matches = useStore((s) => activeTab(s)?.search.matches ?? EMPTY);
   const searchOpen = useStore((s) => activeTab(s)?.search.open ?? false);
+
+  const appVersion = useUpdater((s) => s.currentVersion);
 
   return (
     <div className="statusbar">
@@ -48,6 +51,18 @@ export function StatusBar() {
         </>
       )}
       <span className="st-spacer" />
+      {appVersion && (
+        <>
+          <button
+            className="st-item st-version mono-num"
+            onClick={() => useUpdater.getState().check({ silent: false })}
+            title="Check for updates"
+          >
+            v{appVersion}
+          </button>
+          <span className="st-sep">·</span>
+        </>
+      )}
       <span className="st-item st-muted mono-num">PDF.JS {PDFJS_VERSION}</span>
     </div>
   );

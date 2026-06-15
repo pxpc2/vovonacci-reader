@@ -65,10 +65,15 @@ export function PdfPage({
         const canvas = canvasRef.current;
         if (!canvas) return;
         const outputScale = window.devicePixelRatio || 1;
-        canvas.width = Math.floor(viewport.width * outputScale);
-        canvas.height = Math.floor(viewport.height * outputScale);
-        canvas.style.width = `${Math.floor(viewport.width)}px`;
-        canvas.style.height = `${Math.floor(viewport.height)}px`;
+        // Backing store = the integer CSS size × dpr (rounded to whole device
+        // pixels). Deriving both from the same integer CSS size keeps the buffer
+        // an exact dpr multiple, so the canvas isn't resampled (stays crisp).
+        const cssW = Math.floor(viewport.width);
+        const cssH = Math.floor(viewport.height);
+        canvas.width = Math.round(cssW * outputScale);
+        canvas.height = Math.round(cssH * outputScale);
+        canvas.style.width = `${cssW}px`;
+        canvas.style.height = `${cssH}px`;
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
         const transform =
