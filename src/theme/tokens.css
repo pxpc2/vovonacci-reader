@@ -21,21 +21,23 @@
   --text-muted: #8b949e;
   --text-faint: #5a606b;
 
-  /* Accents */
-  --green: #3fb950;
-  --green-dim: #2ea043;
+  /* Accents — matches vovonacci.com/live (#f5b13d amber-orange) */
+  --accent: #f5b13d;
+  --accent-dim: #d9941f;
+  --accent-2: #f7c061;
   --amber: #d29922;
   --amber-bright: #e3b341;
-  --red: #f85149;
+  --red: #f06363;
   --blue: #58a6ff;
   --cyan: #56d4dd;
+  --violet: #8a7fd6;
 
   /* Semantic */
-  --accent: var(--green);
-  --accent-soft: rgba(63, 185, 80, 0.14);
-  --highlight: rgba(227, 179, 65, 0.32);
-  --highlight-active: rgba(248, 81, 73, 0.55);
-  --selection: rgba(88, 166, 255, 0.35);
+  --accent-soft: rgba(245, 177, 61, 0.14);
+  --accent-glow: rgba(245, 177, 61, 0.2);
+  --highlight: rgba(245, 177, 61, 0.3);
+  --highlight-active: rgba(240, 99, 99, 0.55);
+  --selection: rgba(138, 127, 214, 0.4);
 
   /* Type */
   --font-mono: "JetBrains Mono", "Berkeley Mono", ui-monospace, "Cascadia Mono",

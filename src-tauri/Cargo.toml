@@ -1,7 +1,7 @@
 [package]
 name = "vovonacci-reader"
-version = "0.1.0"
-description = "A Tauri App"
+version = "0.2.0"
+description = "A native PDF reader with the vovonacci terminal aesthetic"
 authors = ["you"]
 edition = "2021"
 

@@ -108,11 +108,18 @@ export function PdfViewer() {
   // --- fit-to-width / fit-to-page ---
   const recomputeFit = () => {
     const el = scrollRef.current;
-    const bs = pageSizes[0];
-    if (!el || !bs || zoomMode === "custom") return;
+    if (!el || !pageSizes.length || zoomMode === "custom") return;
     const swap = rotation % 180 !== 0;
-    const refW = swap ? bs.height : bs.width;
-    const refH = swap ? bs.width : bs.height;
+    // Fit against the document's widest/tallest page so no page overflows and a
+    // small first page (half-title/cover) doesn't over-zoom the whole document.
+    let refW = 0;
+    let refH = 0;
+    for (const s of pageSizes) {
+      const w = swap ? s.height : s.width;
+      const h = swap ? s.width : s.height;
+      if (w > refW) refW = w;
+      if (h > refH) refH = h;
+    }
     const availW = el.clientWidth - PAD * 2 - SCROLLBAR;
     const availH = el.clientHeight - PAD * 2;
     let s = availW / refW;

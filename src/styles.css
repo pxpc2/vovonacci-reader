@@ -56,8 +56,8 @@
   cursor: default;
 }
 .tb-btn.active {
-  color: var(--green);
-  border-color: rgba(63, 185, 80, 0.35);
+  color: var(--accent);
+  border-color: rgba(245, 177, 61, 0.35);
   background: var(--accent-soft);
 }
 .tb-btn-label {
@@ -93,7 +93,7 @@
   outline: none;
 }
 .page-input:focus {
-  border-color: var(--green-dim);
+  border-color: var(--accent-dim);
 }
 .page-total {
   color: var(--text-muted);
@@ -120,13 +120,13 @@
   justify-content: center;
   width: 24px;
   height: 24px;
-  border: 1px solid var(--green-dim);
+  border: 1px solid var(--accent-dim);
   border-radius: var(--radius-sm);
-  color: var(--green);
+  color: var(--accent);
   font-weight: 700;
   font-size: 15px;
   line-height: 1;
-  box-shadow: inset 0 0 12px rgba(63, 185, 80, 0.18);
+  box-shadow: inset 0 0 12px rgba(245, 177, 61, 0.18);
 }
 .brand-word {
   font-size: 13px;
@@ -134,7 +134,7 @@
   color: var(--text);
 }
 .brand-dot {
-  color: var(--green);
+  color: var(--accent);
   margin: 0 1px;
 }
 .brand-sub {
@@ -166,7 +166,7 @@
   outline: none;
 }
 .search-input:focus {
-  border-color: var(--green-dim);
+  border-color: var(--accent-dim);
 }
 .search-count {
   min-width: 56px;
@@ -225,9 +225,9 @@
   background: var(--bg-elev);
 }
 .sb-tab.active {
-  color: var(--green);
+  color: var(--accent);
   background: var(--accent-soft);
-  border-color: rgba(63, 185, 80, 0.3);
+  border-color: rgba(245, 177, 61, 0.3);
 }
 .sidebar-body {
   flex: 1 1 auto;
@@ -307,7 +307,7 @@
   background: var(--bg-elev);
 }
 .thumb.active {
-  border-color: var(--green-dim);
+  border-color: var(--accent-dim);
   background: var(--accent-soft);
 }
 .thumb-canvas-wrap {
@@ -325,7 +325,7 @@
   color: var(--text-muted);
 }
 .thumb.active .thumb-num {
-  color: var(--green);
+  color: var(--accent);
 }
 
 /* ---- PDF viewport --------------------------------------------------------- */
@@ -426,12 +426,12 @@
   justify-content: center;
   width: 64px;
   height: 64px;
-  border: 1px solid var(--green-dim);
+  border: 1px solid var(--accent-dim);
   border-radius: 10px;
-  color: var(--green);
+  color: var(--accent);
   font-size: 40px;
   font-weight: 700;
-  box-shadow: inset 0 0 30px rgba(63, 185, 80, 0.2);
+  box-shadow: inset 0 0 30px rgba(245, 177, 61, 0.2);
 }
 .empty-mark.pulse {
   animation: pulse 1.1s ease-in-out infinite;
@@ -461,16 +461,16 @@
   padding: 0 20px;
   margin-top: 4px;
   background: var(--accent-soft);
-  border: 1px solid var(--green-dim);
+  border: 1px solid var(--accent-dim);
   border-radius: var(--radius);
-  color: var(--green);
+  color: var(--accent);
   font-size: 12px;
   letter-spacing: 0.12em;
   cursor: pointer;
   transition: background var(--tap);
 }
 .empty-open:hover {
-  background: rgba(63, 185, 80, 0.22);
+  background: rgba(245, 177, 61, 0.22);
 }
 .empty-hint {
   color: var(--text-faint);
@@ -576,12 +576,12 @@
   color: var(--text);
 }
 .modal-btn.primary {
-  border-color: var(--green-dim);
+  border-color: var(--accent-dim);
   background: var(--accent-soft);
-  color: var(--green);
+  color: var(--accent);
 }
 .modal-btn.primary:hover {
-  background: rgba(63, 185, 80, 0.22);
+  background: rgba(245, 177, 61, 0.22);
 }
 
 /* ---- Status bar ----------------------------------------------------------- */
@@ -601,15 +601,15 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--green);
+  color: var(--accent);
   letter-spacing: 0.1em;
 }
 .st-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 6px var(--green);
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
 }
 .st-sep {
   color: var(--text-faint);
