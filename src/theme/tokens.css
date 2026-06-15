@@ -1,0 +1,114 @@
+/* ============================================================================
+   VOVONACCI · READER — design tokens
+   Terminal aesthetic mirrored from the vovonacci.com TERMINAL: near-black
+   surfaces, hairline borders, monospace type, green / amber / red accents.
+   ============================================================================ */
+:root {
+  /* Surfaces */
+  --bg: #0a0a0b;
+  --bg-panel: #121214;
+  --bg-panel-2: #161619;
+  --bg-elev: #1c1c20;
+  --bg-inset: #0d0d0f;
+
+  /* Borders */
+  --border: #1f1f23;
+  --border-strong: #2a2a30;
+
+  /* Text */
+  --text: #e6edf3;
+  --text-dim: #b3b9c4;
+  --text-muted: #8b949e;
+  --text-faint: #5a606b;
+
+  /* Accents */
+  --green: #3fb950;
+  --green-dim: #2ea043;
+  --amber: #d29922;
+  --amber-bright: #e3b341;
+  --red: #f85149;
+  --blue: #58a6ff;
+  --cyan: #56d4dd;
+
+  /* Semantic */
+  --accent: var(--green);
+  --accent-soft: rgba(63, 185, 80, 0.14);
+  --highlight: rgba(227, 179, 65, 0.32);
+  --highlight-active: rgba(248, 81, 73, 0.55);
+  --selection: rgba(88, 166, 255, 0.35);
+
+  /* Type */
+  --font-mono: "JetBrains Mono", "Berkeley Mono", ui-monospace, "Cascadia Mono",
+    "Cascadia Code", Consolas, "Liberation Mono", Menlo, monospace;
+
+  /* Geometry */
+  --radius: 4px;
+  --radius-sm: 3px;
+  --toolbar-h: 44px;
+  --statusbar-h: 26px;
+  --sidebar-w: 280px;
+  --gap: 8px;
+
+  /* Motion */
+  --tap: 90ms ease;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+  user-select: none;
+}
+
+::selection {
+  background: var(--selection);
+}
+
+/* Scrollbars — thin, terminal-style */
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-inset);
+}
+::-webkit-scrollbar-thumb {
+  background: #26262c;
+  border: 2px solid var(--bg-inset);
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #34343c;
+}
+
+/* Shared building blocks ----------------------------------------------------*/
+.label {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.mono-num {
+  font-variant-numeric: tabular-nums;
+}
+
+button {
+  font-family: inherit;
+}
