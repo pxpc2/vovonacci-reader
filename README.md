@@ -67,8 +67,8 @@ To cut a release:
 ```bash
 # 1. bump version in package.json, src-tauri/Cargo.toml and tauri.conf.json
 # 2. build + sign the updater artifacts
-$env:TAURI_SIGNING_PRIVATE_KEY      = Get-Content $HOME\.tauri\vovonacci.key -Raw
-$env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = ""   # key was generated without a password
+$env:TAURI_SIGNING_PRIVATE_KEY      = (Get-Content $HOME\.tauri\vovonacci.key -Raw).Trim()
+$env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = "<your key password>"
 pnpm tauri build
 # 3. publish the NSIS installer, its .sig, and latest.json to a GitHub Release
 #    tagged with the new version (see src-tauri/target/release/bundle/).
