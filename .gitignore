@@ -16,6 +16,9 @@ dist-ssr
 public/cmaps
 public/standard_fonts
 
+# Local screenshots from scripts/screenshot.ps1
+shot-*.png
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

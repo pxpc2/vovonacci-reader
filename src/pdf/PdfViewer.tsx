@@ -99,6 +99,12 @@ export function PdfViewer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layout]);
 
+  // reset to the top of the document whenever a new file is opened
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = 0;
+  }, [doc]);
+
   // --- fit-to-width / fit-to-page ---
   const recomputeFit = () => {
     const el = scrollRef.current;
