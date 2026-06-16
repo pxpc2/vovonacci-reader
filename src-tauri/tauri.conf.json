@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Vovonacci Reader",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "identifier": "com.vovonacci.reader",
   "build": {
     "beforeDevCommand": "pnpm dev",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "VOVONACCI · READER",
+        "title": "vovonacci · READER",
         "width": 1280,
         "height": 1000,
         "minWidth": 720,
