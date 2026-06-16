@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useStore, activeTab } from "../state/store";
-import { openWithDialog } from "../lib/source";
+import { OpenButton } from "./OpenButton";
 import {
-  IconOpen,
   IconSidebar,
+  IconHome,
   IconChevronUp,
   IconChevronDown,
   IconZoomIn,
@@ -18,7 +18,12 @@ import {
 } from "./Icons";
 
 export function Toolbar() {
-  const ready = useStore((s) => activeTab(s)?.status === "ready");
+  const home = useStore((s) => s.home);
+  const hasTabs = useStore((s) => s.tabs.length > 0);
+  // "viewing a document" = a ready tab is showing (not the home screen).
+  const viewingDoc = useStore(
+    (s) => !s.home && activeTab(s)?.status === "ready"
+  );
   const currentPage = useStore((s) => activeTab(s)?.currentPage ?? 1);
   const numPages = useStore((s) => activeTab(s)?.numPages ?? 0);
   const scale = useStore((s) => activeTab(s)?.scale ?? 1);
@@ -26,6 +31,8 @@ export function Toolbar() {
   const invert = useStore((s) => activeTab(s)?.invert ?? false);
   const spread = useStore((s) => activeTab(s)?.spread ?? false);
 
+  const showingHome = home || !hasTabs;
+  const goHome = useStore((s) => s.goHome);
   const toggleSidebar = useStore((s) => s.toggleSidebar);
   const requestGoto = useStore((s) => s.requestGoto);
   const zoomIn = useStore((s) => s.zoomIn);
@@ -49,20 +56,24 @@ export function Toolbar() {
     <div className="toolbar">
       <div className="tb-group">
         <button
+          className={"tb-btn" + (showingHome ? " active" : "")}
+          onClick={goHome}
+          title="Home"
+        >
+          <IconHome />
+        </button>
+        <button
           className="tb-btn"
           onClick={toggleSidebar}
-          disabled={!ready}
+          disabled={!viewingDoc}
           title="Toggle sidebar"
         >
           <IconSidebar />
         </button>
-        <button className="tb-btn" onClick={openWithDialog} title="Open PDF (Ctrl+O)">
-          <IconOpen />
-          <span className="tb-btn-label">OPEN</span>
-        </button>
+        <OpenButton />
       </div>
 
-      {ready && (
+      {viewingDoc && (
         <>
           <div className="tb-divider" />
 

@@ -4,7 +4,8 @@ import { IconClose, IconPlus } from "./Icons";
 
 export function Tabs() {
   const tabs = useStore((s) => s.tabs);
-  const activeId = useStore((s) => s.activeId);
+  // No tab is "active" while the home screen is showing.
+  const activeId = useStore((s) => (s.home ? null : s.activeId));
   const setActive = useStore((s) => s.setActive);
   const removeTab = useStore((s) => s.removeTab);
 

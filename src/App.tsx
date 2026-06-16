@@ -3,7 +3,7 @@ import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { invoke } from "@tauri-apps/api/core";
 import { useStore, activeTab } from "./state/store";
 import { useUpdater } from "./lib/updater";
-import { openPath, openFile } from "./lib/source";
+import { openPath, openFile, openWithDialog } from "./lib/source";
 import { Toolbar } from "./components/Toolbar";
 import { Tabs } from "./components/Tabs";
 import { SearchBar } from "./components/SearchBar";
@@ -16,10 +16,14 @@ import { UpdateModal } from "./components/UpdateModal";
 import { StatusBar } from "./components/StatusBar";
 
 export default function App() {
-  const ready = useStore((s) => activeTab(s)?.status === "ready");
+  const home = useStore((s) => s.home);
   const hasTabs = useStore((s) => s.tabs.length > 0);
   const activeId = useStore((s) => s.activeId);
   const activeStatus = useStore((s) => activeTab(s)?.status ?? null);
+  // Home screen shows when explicitly requested OR when there are no tabs.
+  const showHome = home || !hasTabs;
+  // "viewing a document" gates doc-only keyboard shortcuts (page nav, etc.).
+  const viewingDoc = !home && activeStatus === "ready";
   const openSearch = useStore((s) => s.openSearch);
   const closeSearch = useStore((s) => s.closeSearch);
   const zoomIn = useStore((s) => s.zoomIn);
@@ -64,7 +68,10 @@ export default function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const mod = e.ctrlKey || e.metaKey;
-      if (mod && e.key.toLowerCase() === "f") {
+      if (mod && e.key.toLowerCase() === "o") {
+        e.preventDefault();
+        openWithDialog();
+      } else if (mod && e.key.toLowerCase() === "f") {
         e.preventDefault();
         openSearch();
       } else if (mod && (e.key === "=" || e.key === "+")) {
@@ -78,7 +85,7 @@ export default function App() {
         setZoomMode("fit-width");
       } else if (e.key === "Escape") {
         closeSearch();
-      } else if (!mod && ready && (e.key === "Home" || e.key === "End")) {
+      } else if (!mod && viewingDoc && (e.key === "Home" || e.key === "End")) {
         const tgt = e.target as HTMLElement;
         if (tgt.tagName !== "INPUT") {
           e.preventDefault();
@@ -89,7 +96,7 @@ export default function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [openSearch, closeSearch, zoomIn, zoomOut, setZoomMode, requestGoto, ready]);
+  }, [openSearch, closeSearch, zoomIn, zoomOut, setZoomMode, requestGoto, viewingDoc]);
 
   // HTML drag-drop fallback (browser dev outside Tauri).
   const onDrop = (e: React.DragEvent) => {
@@ -108,7 +115,7 @@ export default function App() {
       <div className="workspace">
         <Sidebar />
         <main className="stage">
-          {!hasTabs ? (
+          {showHome ? (
             <EmptyState />
           ) : activeStatus === "ready" ? (
             // keyed by tab id: remounts (and restores scroll position) per tab

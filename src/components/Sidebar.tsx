@@ -7,6 +7,7 @@ const EMPTY_SIZES: PageSize[] = [];
 
 export function Sidebar() {
   const open = useStore((s) => s.sidebarOpen);
+  const home = useStore((s) => s.home);
   const doc = useStore((s) => activeTab(s)?.doc ?? null);
   const outline = useStore((s) => activeTab(s)?.outline ?? null);
   const numPages = useStore((s) => activeTab(s)?.numPages ?? 0);
@@ -14,7 +15,7 @@ export function Sidebar() {
   const tab = useStore((s) => activeTab(s)?.sidebarTab ?? "outline");
   const setTab = useStore((s) => s.setSidebarTab);
 
-  if (!open || !doc) return null;
+  if (!open || !doc || home) return null;
 
   return (
     <aside className="sidebar">

@@ -93,6 +93,8 @@ const newId = () => `tab_${Date.now().toString(36)}_${idSeq++}`;
 interface AppState {
   tabs: DocSession[];
   activeId: string | null;
+  /** Show the home/welcome screen even while documents stay open in tabs. */
+  home: boolean;
 
   // global (app-level) state
   sidebarOpen: boolean;
@@ -104,6 +106,8 @@ interface AppState {
   failTab: (id: string, msg: string) => void;
   removeTab: (id: string) => void;
   setActive: (id: string) => void;
+  /** Show the welcome screen without closing any tabs. */
+  goHome: () => void;
   /** If a (non-errored) tab for this path already exists, focus it and return its id. */
   focusExisting: (filePath: string) => string | null;
 
@@ -160,6 +164,7 @@ export const useStore = create<AppState>((set, get) => {
   return {
     tabs: [],
     activeId: null,
+    home: false,
     sidebarOpen: true,
     recents: loadRecents(),
 
@@ -187,7 +192,7 @@ export const useStore = create<AppState>((set, get) => {
         goto: null,
         search: emptySearch(),
       };
-      set({ tabs: [...get().tabs, tab], activeId: id });
+      set({ tabs: [...get().tabs, tab], activeId: id, home: false });
       return id;
     },
 
@@ -231,14 +236,16 @@ export const useStore = create<AppState>((set, get) => {
       set({ tabs: next, activeId: nextActive });
     },
 
-    setActive: (id) => set({ activeId: id }),
+    setActive: (id) => set({ activeId: id, home: false }),
+
+    goHome: () => set({ home: true }),
 
     focusExisting: (filePath) => {
       const t = get().tabs.find(
         (t) => t.filePath === filePath && t.status !== "error"
       );
       if (t) {
-        set({ activeId: t.id });
+        set({ activeId: t.id, home: false });
         return t.id;
       }
       return null;

@@ -6,7 +6,7 @@ import { PDFJS_VERSION } from "../pdf/pdfSetup";
 const EMPTY: SearchMatch[] = [];
 
 export function StatusBar() {
-  const ready = useStore((s) => activeTab(s)?.status === "ready");
+  const ready = useStore((s) => !s.home && activeTab(s)?.status === "ready");
   const currentPage = useStore((s) => activeTab(s)?.currentPage ?? 1);
   const numPages = useStore((s) => activeTab(s)?.numPages ?? 0);
   const scale = useStore((s) => activeTab(s)?.scale ?? 1);
