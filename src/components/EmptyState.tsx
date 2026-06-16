@@ -17,7 +17,7 @@ export function EmptyState() {
 
   return (
     <div className="empty">
-      <div className="empty-mark">v</div>
+      <div className="empty-mark">V</div>
       <div className="empty-word">
         vovonacci<span className="brand-dot">·</span>
         <span className="brand-sub">READER</span>

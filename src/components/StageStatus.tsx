@@ -11,7 +11,7 @@ export function StageStatus() {
   if (status === "loading") {
     return (
       <div className="empty">
-        <div className="empty-mark pulse">v</div>
+        <div className="empty-mark pulse">V</div>
         <div className="label">PARSING DOCUMENT…</div>
         {fileName && <div className="empty-hint">{fileName}</div>}
       </div>
