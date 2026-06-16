@@ -19,6 +19,7 @@ export function PdfViewer() {
   const zoomMode = useStore((s) => activeTab(s)?.zoomMode ?? "fit-width");
   const rotation = useStore((s) => activeTab(s)?.rotation ?? 0);
   const invert = useStore((s) => activeTab(s)?.invert ?? false);
+  const spread = useStore((s) => activeTab(s)?.spread ?? false);
   const goto = useStore((s) => activeTab(s)?.goto ?? null);
   const setCurrentPage = useStore((s) => s.setCurrentPage);
   const matches = useStore((s) => activeTab(s)?.search.matches ?? EMPTY);
@@ -28,22 +29,49 @@ export function PdfViewer() {
   const [viewportW, setViewportW] = useState(0);
 
   const layout = useMemo(() => {
+    const swap = rotation % 180 !== 0;
+    const dim = (i: number) => {
+      const bs = pageSizes[i] ?? pageSizes[0];
+      const w = bs ? Math.floor((swap ? bs.height : bs.width) * scale) : 600;
+      const h = bs ? Math.floor((swap ? bs.width : bs.height) * scale) : 800;
+      return { w, h };
+    };
     const tops: number[] = [];
     const heights: number[] = [];
-    const swap = rotation % 180 !== 0;
+    const widths: number[] = [];
     let y = PAD;
-    let maxW = 0;
-    for (let i = 0; i < numPages; i++) {
-      const bs = pageSizes[i] ?? pageSizes[0];
-      const h = bs ? Math.floor((swap ? bs.width : bs.height) * scale) : 800;
-      const w = bs ? Math.floor((swap ? bs.height : bs.width) * scale) : 600;
-      if (w > maxW) maxW = w;
-      tops.push(y);
-      heights.push(h);
-      y += h + GAP;
+    let contentW = 0;
+    if (spread) {
+      // Pages flow in rows of two (1|2, 3|4, …); a trailing odd page sits alone.
+      for (let i = 0; i < numPages; i += 2) {
+        const a = dim(i);
+        const hasB = i + 1 < numPages;
+        const b = hasB ? dim(i + 1) : { w: 0, h: 0 };
+        const rowW = a.w + (hasB ? GAP + b.w : 0);
+        const rowH = Math.max(a.h, b.h);
+        if (rowW > contentW) contentW = rowW;
+        tops[i] = y;
+        heights[i] = a.h;
+        widths[i] = a.w;
+        if (hasB) {
+          tops[i + 1] = y;
+          heights[i + 1] = b.h;
+          widths[i + 1] = b.w;
+        }
+        y += rowH + GAP;
+      }
+    } else {
+      for (let i = 0; i < numPages; i++) {
+        const d = dim(i);
+        tops[i] = y;
+        heights[i] = d.h;
+        widths[i] = d.w;
+        if (d.w > contentW) contentW = d.w;
+        y += d.h + GAP;
+      }
     }
-    return { tops, heights, total: y - GAP + PAD, maxW };
-  }, [pageSizes, scale, rotation, numPages]);
+    return { tops, heights, widths, total: y - GAP + PAD, contentW };
+  }, [pageSizes, scale, rotation, numPages, spread]);
 
   // Latest layout, readable from rAF callbacks without re-binding effects.
   const layoutRef = useRef(layout);
@@ -144,7 +172,8 @@ export function PdfViewer() {
     }
     const availW = el.clientWidth - PAD * 2 - SCROLLBAR;
     const availH = el.clientHeight - PAD * 2;
-    let s = availW / refW;
+    // In spread mode two reference pages plus the gap must fit across the width.
+    let s = spread ? (availW - GAP) / (2 * refW) : availW / refW;
     if (zoomMode === "fit-page") s = Math.min(s, availH / refH);
     s = Math.max(0.2, Math.min(6, s));
     if (Math.abs(s - scale) > 0.001) useStore.getState().applyFitScale(s);
@@ -153,7 +182,7 @@ export function PdfViewer() {
   useLayoutEffect(() => {
     recomputeFit();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [zoomMode, rotation, pageSizes]);
+  }, [zoomMode, rotation, pageSizes, spread]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -167,7 +196,7 @@ export function PdfViewer() {
     setViewportW(el.clientWidth);
     return () => ro.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [zoomMode, rotation, pageSizes, layout]);
+  }, [zoomMode, rotation, pageSizes, layout, spread]);
 
   // --- keep reading position anchored across zoom/rotation changes ---
   const prevScale = useRef(scale);
@@ -199,8 +228,7 @@ export function PdfViewer() {
   // page placed at a rounded `left`. This avoids the half-pixel offset that
   // `translateX(-50%)` produces on odd page widths (which resamples the canvas
   // and looks blurry at dpr=1 until a zoom change happens to land on an even px).
-  const swapWH = rotation % 180 !== 0;
-  const scrollW = Math.max(viewportW, layout.maxW + PAD * 2);
+  const scrollW = Math.max(viewportW, layout.contentW + PAD * 2);
 
   return (
     <div className="pdf-viewport" ref={scrollRef} onScroll={onScroll}>
@@ -211,8 +239,21 @@ export function PdfViewer() {
         {Array.from({ length: numPages }, (_, i) => {
           const bs = pageSizes[i] ?? pageSizes[0];
           if (!bs) return null;
-          const pageW = Math.floor((swapWH ? bs.height : bs.width) * scale);
-          const left = Math.max(0, Math.round((scrollW - pageW) / 2));
+          let left: number;
+          if (spread) {
+            // Center the row (this page + its partner) and place this page on
+            // its side of the gap.
+            const isLeft = i % 2 === 0;
+            const leftIdx = isLeft ? i : i - 1;
+            const wl = layout.widths[leftIdx] ?? 0;
+            const hasRight = leftIdx + 1 < numPages;
+            const wr = hasRight ? layout.widths[leftIdx + 1] ?? 0 : 0;
+            const rowW = wl + (hasRight ? GAP + wr : 0);
+            const rowLeft = Math.max(0, Math.round((scrollW - rowW) / 2));
+            left = isLeft ? rowLeft : rowLeft + wl + GAP;
+          } else {
+            left = Math.max(0, Math.round((scrollW - (layout.widths[i] ?? 0)) / 2));
+          }
           return (
             <div
               className="pdf-slot"

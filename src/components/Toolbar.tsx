@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useStore, activeTab } from "../state/store";
 import { openWithDialog } from "../lib/source";
-import { Brand } from "./Brand";
 import {
   IconOpen,
   IconSidebar,
@@ -13,6 +12,7 @@ import {
   IconFitPage,
   IconRotate,
   IconInvert,
+  IconSpread,
   IconSearch,
   IconPrint,
 } from "./Icons";
@@ -24,6 +24,7 @@ export function Toolbar() {
   const scale = useStore((s) => activeTab(s)?.scale ?? 1);
   const zoomMode = useStore((s) => activeTab(s)?.zoomMode ?? "fit-width");
   const invert = useStore((s) => activeTab(s)?.invert ?? false);
+  const spread = useStore((s) => activeTab(s)?.spread ?? false);
 
   const toggleSidebar = useStore((s) => s.toggleSidebar);
   const requestGoto = useStore((s) => s.requestGoto);
@@ -32,6 +33,7 @@ export function Toolbar() {
   const setZoomMode = useStore((s) => s.setZoomMode);
   const rotateCW = useStore((s) => s.rotateCW);
   const toggleInvert = useStore((s) => s.toggleInvert);
+  const toggleSpread = useStore((s) => s.toggleSpread);
   const openSearch = useStore((s) => s.openSearch);
 
   const [pageInput, setPageInput] = useState(String(currentPage));
@@ -45,8 +47,7 @@ export function Toolbar() {
 
   return (
     <div className="toolbar">
-      <div className="tb-group brand-group">
-        <Brand />
+      <div className="tb-group">
         <button
           className="tb-btn"
           onClick={toggleSidebar}
@@ -55,11 +56,6 @@ export function Toolbar() {
         >
           <IconSidebar />
         </button>
-      </div>
-
-      <div className="tb-divider" />
-
-      <div className="tb-group">
         <button className="tb-btn" onClick={openWithDialog} title="Open PDF (Ctrl+O)">
           <IconOpen />
           <span className="tb-btn-label">OPEN</span>
@@ -132,6 +128,13 @@ export function Toolbar() {
               title="Invert (dark mode)"
             >
               <IconInvert />
+            </button>
+            <button
+              className={"tb-btn" + (spread ? " active" : "")}
+              onClick={toggleSpread}
+              title="Two-page view"
+            >
+              <IconSpread />
             </button>
           </div>
 

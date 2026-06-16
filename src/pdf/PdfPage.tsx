@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { PDFDocumentProxy } from "pdfjs-dist/types/src/display/api";
 import { pdfjs } from "./pdfSetup";
-import { getPageProxy, getTextSnapshot, type PageSize } from "./document";
+import { getPageProxy, getTextSnapshot, imageRects, type PageSize } from "./document";
 import type { SearchMatch } from "../state/store";
 
 const { TextLayer, Util, RenderingCancelledException } = pdfjs as any;
@@ -40,6 +40,7 @@ export function PdfPage({
   activeMatch,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imgCanvasRef = useRef<HTMLCanvasElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
   const [painted, setPainted] = useState(false);
   const [boxes, setBoxes] = useState<Box[]>([]);
@@ -156,6 +157,59 @@ export function PdfPage({
     };
   }, [doc, pageNumber, scale, rotation, shouldRender, matches, activeMatch]);
 
+  // ---- Dark-mode image preservation ----
+  // The whole page canvas is CSS-inverted; here we repaint just the raster image
+  // regions in their ORIGINAL colors onto a non-inverted overlay above it, so
+  // photographs/people don't get inverted (vector charts/text still invert).
+  useEffect(() => {
+    const overlay = imgCanvasRef.current;
+    if (overlay) {
+      const octx = overlay.getContext("2d");
+      octx?.clearRect(0, 0, overlay.width, overlay.height);
+    }
+    if (!invert || !shouldRender || !painted) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const page = await getPageProxy(doc, pageNumber);
+        if (cancelled) return;
+        const viewport = page.getViewport({ scale, rotation });
+        const rects = await imageRects(doc, pageNumber, viewport);
+        if (cancelled || rects.length === 0) return;
+        const main = canvasRef.current;
+        const ov = imgCanvasRef.current;
+        if (!main || !ov) return;
+        const os = window.devicePixelRatio || 1;
+        ov.width = main.width;
+        ov.height = main.height;
+        ov.style.width = main.style.width;
+        ov.style.height = main.style.height;
+        const ctx = ov.getContext("2d");
+        if (!ctx) return;
+        ctx.clearRect(0, 0, ov.width, ov.height);
+        for (const r of rects) {
+          let sx = Math.floor(r.x * os);
+          let sy = Math.floor(r.y * os);
+          let sw = Math.ceil(r.w * os);
+          let sh = Math.ceil(r.h * os);
+          // clamp to the canvas (images can extend slightly past the crop box)
+          sx = Math.max(0, Math.min(sx, main.width));
+          sy = Math.max(0, Math.min(sy, main.height));
+          sw = Math.min(sw, main.width - sx);
+          sh = Math.min(sh, main.height - sy);
+          if (sw <= 0 || sh <= 0) continue;
+          // copy ORIGINAL pixels from the page canvas (CSS filter is display-only)
+          ctx.drawImage(main, sx, sy, sw, sh, sx, sy, sw, sh);
+        }
+      } catch {
+        /* operator list unavailable — leave the page fully inverted */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [invert, shouldRender, painted, scale, rotation, doc, pageNumber]);
+
   return (
     <div
       className={"pdf-page" + (invert ? " invert" : "")}
@@ -166,6 +220,7 @@ export function PdfPage({
       {shouldRender && (
         <>
           <canvas ref={canvasRef} className="pdf-page-canvas" />
+          <canvas ref={imgCanvasRef} className="pdf-page-imglayer" aria-hidden />
           <div className="pdf-page-highlights" aria-hidden>
             {boxes.map((b, idx) => (
               <div

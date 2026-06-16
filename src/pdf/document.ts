@@ -179,6 +179,79 @@ export async function loadDocument(
   return { doc, numPages, pageSizes, outline, title, author };
 }
 
+export interface Rect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/**
+ * Bounding boxes (in CSS device px for `viewport`) of the raster images painted
+ * on a page. Dark mode uses these to repaint photos in their true colors over
+ * the inverted page so people/photographs don't look ghoulish.
+ *
+ * Walks the operator list maintaining the transform stack; every image is drawn
+ * into the unit square under the current matrix, so its box is that square
+ * mapped through (viewport.transform ∘ CTM). Form XObjects push their own matrix.
+ */
+export async function imageRects(
+  doc: PDFDocumentProxy,
+  pageNumber: number,
+  viewport: { transform: number[] }
+): Promise<Rect[]> {
+  const page = await getPageProxy(doc, pageNumber);
+  const ops = await page.getOperatorList();
+  const OPS = (pdfjs as any).OPS;
+  const Util = (pdfjs as any).Util;
+  const imageOps = new Set<number>([
+    OPS.paintImageXObject,
+    OPS.paintInlineImageXObject,
+    OPS.paintImageXObjectRepeat,
+  ]);
+  const IDENT = [1, 0, 0, 1, 0, 0];
+  let ctm = IDENT;
+  const stack: number[][] = [];
+  const rects: Rect[] = [];
+  const { fnArray, argsArray } = ops;
+  for (let i = 0; i < fnArray.length; i++) {
+    const fn = fnArray[i];
+    if (fn === OPS.save) {
+      stack.push(ctm);
+    } else if (fn === OPS.restore) {
+      ctm = stack.pop() || IDENT;
+    } else if (fn === OPS.transform) {
+      ctm = Util.transform(ctm, argsArray[i]);
+    } else if (fn === OPS.paintFormXObjectBegin) {
+      stack.push(ctm);
+      const matrix = argsArray[i] && argsArray[i][0];
+      if (matrix) ctm = Util.transform(ctm, matrix);
+    } else if (fn === OPS.paintFormXObjectEnd) {
+      ctm = stack.pop() || IDENT;
+    } else if (imageOps.has(fn)) {
+      const m = Util.transform(viewport.transform, ctm);
+      const corners = [
+        Util.applyTransform([0, 0], m),
+        Util.applyTransform([1, 0], m),
+        Util.applyTransform([1, 1], m),
+        Util.applyTransform([0, 1], m),
+      ];
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      for (const [x, y] of corners) {
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+      }
+      rects.push({ x: minX, y: minY, w: maxX - minX, h: maxY - minY });
+    }
+  }
+  return rects;
+}
+
 /** Resolve an outline/destination reference to a 1-based page number. */
 export async function destToPage(
   doc: PDFDocumentProxy,

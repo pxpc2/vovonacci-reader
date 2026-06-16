@@ -114,3 +114,10 @@ export const IconDownload = ({ size }: IP) => (
     <path d="M5 19h14" />
   </svg>
 );
+// Two facing pages — toggles the side-by-side spread view.
+export const IconSpread = ({ size }: IP) => (
+  <svg {...base(size)}>
+    <rect x="3" y="5" width="8" height="14" rx="1" />
+    <rect x="13" y="5" width="8" height="14" rx="1" />
+  </svg>
+);

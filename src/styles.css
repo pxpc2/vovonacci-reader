@@ -353,6 +353,14 @@
   position: relative;
   z-index: 1;
 }
+/* Original-color image regions painted over the inverted canvas in dark mode. */
+.pdf-page-imglayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  pointer-events: none;
+}
 .pdf-page-skeleton {
   position: absolute;
   inset: 0;

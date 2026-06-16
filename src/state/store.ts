@@ -51,6 +51,7 @@ export interface DocSession {
   zoomMode: ZoomMode;
   rotation: number; // 0 | 90 | 180 | 270
   invert: boolean; // dark-mode page inversion
+  spread: boolean; // two-page side-by-side layout
 
   goto: { page: number; nonce: number } | null;
   search: SearchState;
@@ -120,6 +121,7 @@ interface AppState {
   rotateCW: () => void;
   rotateCCW: () => void;
   toggleInvert: () => void;
+  toggleSpread: () => void;
 
   openSearch: () => void;
   closeSearch: () => void;
@@ -181,6 +183,7 @@ export const useStore = create<AppState>((set, get) => {
         zoomMode: "fit-width",
         rotation: 0,
         invert: false,
+        spread: false,
         goto: null,
         search: emptySearch(),
       };
@@ -267,6 +270,7 @@ export const useStore = create<AppState>((set, get) => {
     rotateCW: () => patchActive((t) => ({ rotation: (t.rotation + 90) % 360 })),
     rotateCCW: () => patchActive((t) => ({ rotation: (t.rotation + 270) % 360 })),
     toggleInvert: () => patchActive((t) => ({ invert: !t.invert })),
+    toggleSpread: () => patchActive((t) => ({ spread: !t.spread })),
 
     openSearch: () => patchActive((t) => ({ search: { ...t.search, open: true } })),
     closeSearch: () =>
