@@ -229,13 +229,15 @@ export async function imageRects(
     } else if (fn === OPS.paintFormXObjectEnd) {
       ctm = stack.pop() || IDENT;
     } else if (imageOps.has(fn)) {
+      // (viewport.transform ∘ CTM) maps the image's unit square to device px.
+      // NB: compute the point transform by hand — pdfjs v6's Util.applyTransform
+      // mutates its argument in place and returns undefined.
       const m = Util.transform(viewport.transform, ctm);
-      const corners = [
-        Util.applyTransform([0, 0], m),
-        Util.applyTransform([1, 0], m),
-        Util.applyTransform([1, 1], m),
-        Util.applyTransform([0, 1], m),
+      const pt = (px: number, py: number): [number, number] => [
+        px * m[0] + py * m[2] + m[4],
+        px * m[1] + py * m[3] + m[5],
       ];
+      const corners = [pt(0, 0), pt(1, 0), pt(1, 1), pt(0, 1)];
       let minX = Infinity;
       let minY = Infinity;
       let maxX = -Infinity;
