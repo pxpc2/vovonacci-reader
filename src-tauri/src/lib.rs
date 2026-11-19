@@ -6,6 +6,10 @@ use tauri::{Emitter, Manager};
 /// this once on mount via `take_launch_file`.
 struct LaunchFile(Mutex<Option<String>>);
 
+/// Where the window-state plugin stores the last window geometry (inside the app
+/// config dir). Its absence means this is a first launch.
+const WINDOW_STATE_FILE: &str = ".window-state.json";
+
 /// Read a PDF (or any file) from an absolute path and return the raw bytes.
 /// Returned as a binary `Response` so it arrives in the webview as an ArrayBuffer
 /// instead of a giant JSON number array.
@@ -43,6 +47,12 @@ pub fn run() {
                 let _ = w.unminimize();
             }
         }))
+        // remembers the window's position / size / maximized state across launches.
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_filename(WINDOW_STATE_FILE)
+                .build(),
+        )
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
@@ -54,21 +64,34 @@ pub fn run() {
             let args: Vec<String> = std::env::args().collect();
             app.manage(LaunchFile(Mutex::new(first_pdf_arg(&args))));
 
-            // Default to a tall, portrait-leaning window — but sized to the actual
-            // monitor (accounting for DPI scaling) so the title bar never lands
-            // off-screen. ~92% of the screen height, width kept at the 1280 design
-            // width when it fits.
             if let Some(win) = app.get_webview_window("main") {
-                if let Ok(Some(monitor)) = win.current_monitor() {
-                    let scale = monitor.scale_factor();
-                    let phys = monitor.size();
-                    let avail_w = phys.width as f64 / scale;
-                    let avail_h = phys.height as f64 / scale;
-                    let h = (avail_h * 0.92).clamp(600.0, 1300.0);
-                    let w = 1280.0_f64.min(avail_w * 0.95);
-                    let _ = win.set_size(tauri::LogicalSize::new(w, h));
-                    let _ = win.center();
+                // The window-state plugin has already restored the last position /
+                // size if it had one saved. Only on a first launch (no saved state)
+                // fall back to the default: a tall, portrait-leaning window sized to
+                // the actual monitor (accounting for DPI scaling) so the title bar
+                // never lands off-screen. ~92% of the screen height, width kept at
+                // the 1280 design width when it fits.
+                let has_saved_state = app
+                    .path()
+                    .app_config_dir()
+                    .map(|dir| dir.join(WINDOW_STATE_FILE).exists())
+                    .unwrap_or(false);
+                if !has_saved_state {
+                    if let Ok(Some(monitor)) = win.current_monitor() {
+                        let scale = monitor.scale_factor();
+                        let phys = monitor.size();
+                        let avail_w = phys.width as f64 / scale;
+                        let avail_h = phys.height as f64 / scale;
+                        let h = (avail_h * 0.92).clamp(600.0, 1300.0);
+                        let w = 1280.0_f64.min(avail_w * 0.95);
+                        let _ = win.set_size(tauri::LogicalSize::new(w, h));
+                        let _ = win.center();
+                    }
                 }
+                // The window starts hidden (tauri.conf.json) so it never flashes at
+                // the default spot before being moved; show it now that it's placed.
+                let _ = win.show();
+                let _ = win.set_focus();
             }
             Ok(())
         })
