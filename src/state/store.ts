@@ -165,7 +165,7 @@ export const useStore = create<AppState>((set, get) => {
     tabs: [],
     activeId: null,
     home: false,
-    sidebarOpen: true,
+    sidebarOpen: false,
     recents: loadRecents(),
 
     openTab: (fileName, filePath) => {
