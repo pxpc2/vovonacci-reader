@@ -58,22 +58,27 @@ running app fetches it unauthenticated, **the repo must be public** for updates 
 reach installed clients.
 
 Update artifacts are signed with a minisign keypair. The **public** key is committed
-in `tauri.conf.json`; the **private** key lives outside the repo at
-`~/.tauri/vovonacci.key` (generated with `pnpm tauri signer generate`) and must
-never be committed — losing it means you can no longer ship updates.
+in `tauri.conf.json`; the **private** key and its password are stored as the
+repository secrets `TAURI_SIGNING_PRIVATE_KEY` and
+`TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (Settings → Secrets and variables → Actions).
+Keep a backup of both outside the repo — losing either means installed copies can
+no longer be updated without a manual reinstall.
 
-To cut a release:
+To cut a release, bump the version in `package.json`, `src-tauri/Cargo.toml` and
+`src-tauri/tauri.conf.json` and merge to `master`. The **Release** workflow
+(`.github/workflows/release.yml`) then builds the Windows installer, signs it,
+generates `latest.json` and publishes a GitHub Release tagged `v<version>`. Pushes
+that don't change the version do nothing. The commit subject becomes the in-app
+release notes.
+
+To build a release by hand instead:
 
 ```powershell
-# 1. bump version in package.json, src-tauri/Cargo.toml and tauri.conf.json
-# 2. build + sign the updater artifacts
-$env:TAURI_SIGNING_PRIVATE_KEY      = (Get-Content $HOME\.tauri\vovonacci.key -Raw).Trim()
+$env:TAURI_SIGNING_PRIVATE_KEY      = (Get-Content <path to key file> -Raw).Trim()
 $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = "<your key password>"
 pnpm tauri build
-# 3. generate latest.json (UTF-8, no BOM) + a clean-named installer copy
 $env:UPDATE_NOTES = "what changed in this version"   # optional
 pnpm release:manifest
-# 4. publish to a GitHub Release tagged v<version>, marked latest
 gh release create v<version> `
   src-tauri/target/release/upload/vovonacci-reader_<version>_x64-setup.exe `
   src-tauri/target/release/upload/latest.json --latest --title "Vovonacci Reader <version>"
@@ -83,7 +88,9 @@ gh release create v<version> `
 signature; `scripts/make-latest.mjs` assembles the `latest.json` the client
 reads. **Do not** write `latest.json` with PowerShell's `Set-Content -Encoding
 utf8` — it prepends a UTF-8 BOM that makes the updater's JSON parser reject the
-manifest (the check then fails silently). The script avoids this.
+manifest (the check then fails silently). The script avoids this. It also refuses
+to write a manifest when the installer was signed by a key other than the one in
+`plugins.updater.pubkey`.
 
 ## Architecture
 

@@ -29,6 +29,26 @@ const cleanName = `vovonacci-reader_${version}_x64-setup.exe`;
 
 const sig = readFileSync(join(nsisDir, `${setupName}.sig`), "utf8").trim();
 
+// Refuse to publish an update signed by a key other than the one the app trusts
+// (`plugins.updater.pubkey`). Installed clients would reject it, and worse, the
+// new build would ship trusting a key we are not signing with. Both the pubkey
+// and the signature are base64-wrapped minisign text whose second line holds
+// <2-byte algorithm><8-byte key id>...; the key ids must match.
+const keyId = (b64) => {
+  const line = Buffer.from(b64, "base64").toString("utf8").split(/\r?\n/)[1];
+  return Buffer.from(line ?? "", "base64").subarray(2, 10).toString("hex");
+};
+const trustedId = keyId(conf.plugins.updater.pubkey);
+const signedId = keyId(sig);
+if (!trustedId || trustedId !== signedId) {
+  console.error(
+    `[make-latest] signing key mismatch: installer was signed by key ${signedId || "?"} ` +
+      `but tauri.conf.json trusts key ${trustedId || "?"}. ` +
+      "Sign with the matching private key, or update plugins.updater.pubkey."
+  );
+  process.exit(1);
+}
+
 const outDir = join(root, "src-tauri/target/release/upload");
 mkdirSync(outDir, { recursive: true });
 copyFileSync(join(nsisDir, setupName), join(outDir, cleanName));

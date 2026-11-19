@@ -1,0 +1,111 @@
+# Builds, signs and publishes a release whenever a new version lands on master.
+#
+# The version comes from src-tauri/tauri.conf.json. If a GitHub Release tagged
+# v<version> already exists the workflow does nothing, so ordinary pushes that
+# don't bump the version are free. To ship: bump the version, merge to master.
+#
+# Requires two repository secrets (Settings -> Secrets and variables -> Actions):
+#   TAURI_SIGNING_PRIVATE_KEY           contents of the updater private key file
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  that key's password
+name: Release
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Check version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      released: ${{ steps.version.outputs.released }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if gh release view "v$version" >/dev/null 2>&1; then
+            echo "released=true" >> "$GITHUB_OUTPUT"
+            echo "v$version is already released; nothing to do."
+          else
+            echo "released=false" >> "$GITHUB_OUTPUT"
+            echo "v$version has no release yet; building."
+          fi
+
+  release:
+    name: Build and publish
+    needs: check
+    if: needs.check.outputs.released == 'false'
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Require signing secrets
+        env:
+          KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEY" ] || [ -z "$PASSWORD" ]; then
+            echo "::error::Set the TAURI_SIGNING_PRIVATE_KEY and TAURI_SIGNING_PRIVATE_KEY_PASSWORD repository secrets."
+            exit 1
+          fi
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build and sign
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: pnpm tauri build
+
+      # Uses the commit subject (minus its "v<version>: " prefix) as the notes
+      # shown in the in-app update prompt.
+      - name: Generate update manifest
+        run: |
+          subject=$(git log -1 --pretty=%s)
+          export UPDATE_NOTES="${subject#v$VERSION: }"
+          pnpm release:manifest
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v$VERSION" \
+            "src-tauri/target/release/upload/vovonacci-reader_${VERSION}_x64-setup.exe" \
+            "src-tauri/target/release/upload/latest.json" \
+            --latest \
+            --target "$GITHUB_SHA" \
+            --title "Vovonacci Reader $VERSION" \
+            --notes "$(git log -1 --pretty=%s)"
